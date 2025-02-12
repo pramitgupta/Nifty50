@@ -1,0 +1,225 @@
+---
+title: "Nifty50 Stock Price Data app"
+author: "Sudhir Voleti"
+date: "`r Sys.Date()`"
+output: html_document
+---
+# LLM Used: GPT4o
+
+# Background Story
+
+Imagine this: You’re an investor trying to keep up with the fast-paced world of the stock market. You have a keen eye for opportunities but are limited by the tools at your disposal—clunky interfaces, delayed data, and scattered information. The stock market waits for no one, and your decisions are only as good as the data you rely on.
+
+This challenge inspired us to create StockSphere, a cutting-edge interactive web application designed to revolutionize how we access and analyze stock market data for Nifty 50 companies.
+
+
+## Problem Statement
+
+We aim to develop an interactive web application that provides real-time stock data for Nifty 50 companies, enabling users to view live prices, analyze historical trends through visualizations, and forecast future stock prices using ARIMA models. The application will feature a user-friendly interface for intuitive navigation and efficient data fetching to ensure timely updates without performance degradation.
+
+## Step-by-Step Implementation
+
+## Prompt
+```r
+Develop an R Shiny application that fetches real-time and historical stock data for Nifty 50 companies. It should visualize the data with interactive charts. The user interface should include inputs for company selection and date range. Provide the complete R code for this application.
+```
+# Response from LLM
+
+### 1. Install Required Packages
+
+Ensure that the necessary packages are installed for the app to function correctly. These include `shiny`, `quantmod`, `plotly`.
+Lets check whether the packages are installed or not
+
+```r
+# Define required packages
+required_packages <- c("shiny", "quantmod", "plotly")
+
+# Check and install missing packages
+install_if_missing <- function(packages) {
+  for (pkg in packages) {
+    if (!requireNamespace(pkg, quietly = TRUE)) {
+      install.packages(pkg)
+    }
+  }
+}
+
+install_if_missing(required_packages)
+
+# Load the packages
+lapply(required_packages, library, character.only = TRUE)
+
+```
+
+### 2. Load Required Libraries
+
+Load the required libraries at the start of the script.
+
+```r
+library(shiny)
+library(quantmod)
+
+```
+
+### 3. Define the Companies list
+
+The companies list should be automatically provided by the LLM. If its not, then you can manually provide the list to the LLM.
+
+```r
+Please include all the nifty50 companies in the dropdown list
+```
+### Implementation with LLM Assistance
+
+```r
+# Load Nifty 50 companies list
+nifty50_companies <- data.frame(
+  Company = c(
+    # Financial Services
+    "HDFC Bank", "ICICI Bank", "State Bank of India (SBI)", "Axis Bank", "Kotak Mahindra Bank", "Bajaj Finance", "Bajaj Finserv", "HDFC Life Insurance",
+    # Information Technology
+    "Tata Consultancy Services (TCS)", "Infosys", "HCL Technologies", "Wipro", "Tech Mahindra",
+    # Consumer Goods
+    "Hindustan Unilever", "ITC Limited", "Asian Paints", "Titan Company", "Britannia Industries", "Nestle India",
+    # Energy
+    "Reliance Industries", "Oil & Natural Gas Corporation (ONGC)", "Power Grid Corporation", "NTPC Limited", "Coal India",
+    # Automotive
+    "Mahindra & Mahindra", "Maruti Suzuki", "Tata Motors", "Bajaj Auto", "Hero MotoCorp", "Eicher Motors",
+    # Metals & Mining
+    "Tata Steel", "JSW Steel", "Hindalco Industries",
+    # Healthcare
+    "Sun Pharmaceutical", "Dr. Reddy's Laboratories", "Cipla", "Divi's Laboratories", "Apollo Hospitals",
+    # Cement
+    "UltraTech Cement", "Grasim Industries",
+    # Infrastructure & Construction
+    "Larsen & Toubro (L&T)", "Adani Ports & SEZ",
+    # Telecommunications
+    "Bharti Airtel",
+    # Others
+    "Adani Enterprises", "UPL Limited", "SBI Life Insurance", "BPCL (Bharat Petroleum Corporation Limited)", "IndusInd Bank", "Hindustan Aeronautics Limited (HAL)", "Tata Consumer Products", "LTIMindtree"
+  ),
+  Symbol = c(
+    # Financial Services
+    "HDFCBANK.NS", "ICICIBANK.NS", "SBIN.NS", "AXISBANK.NS", "KOTAKBANK.NS", "BAJFINANCE.NS", "BAJAJFINSV.NS", "HDFCLIFE.NS",
+    # Information Technology
+    "TCS.NS", "INFY.NS", "HCLTECH.NS", "WIPRO.NS", "TECHM.NS",
+    # Consumer Goods
+    "HINDUNILVR.NS", "ITC.NS", "ASIANPAINT.NS", "TITAN.NS", "BRITANNIA.NS", "NESTLEIND.NS",
+    # Energy
+    "RELIANCE.NS", "ONGC.NS", "POWERGRID.NS", "NTPC.NS", "COALINDIA.NS",
+    # Automotive
+    "M&M.NS", "MARUTI.NS", "TATAMOTORS.NS", "BAJAJ-AUTO.NS", "HEROMOTOCO.NS", "EICHERMOT.NS",
+    # Metals & Mining
+    "TATASTEEL.NS", "JSWSTEEL.NS", "HINDALCO.NS",
+    # Healthcare
+    "SUNPHARMA.NS", "DRREDDY.NS", "CIPLA.NS", "DIVISLAB.NS", "APOLLOHOSP.NS",
+    # Cement
+    "ULTRACEMCO.NS", "GRASIM.NS",
+    # Infrastructure & Construction
+    "LT.NS", "ADANIPORTS.NS",
+    # Telecommunications
+    "BHARTIARTL.NS",
+    # Others
+    "ADANIENT.NS", "UPL.NS", "SBILIFE.NS", "BPCL.NS", "INDUSINDBK.NS", "HAL.NS", "TATACONSUM.NS", "LTIM.NS"
+  )
+)
+
+```
+
+### 4. Define UI
+
+The UI should contain
+
+- A dropdown to choose the list of companies
+- Date ranges
+- Action Button like Update
+- Text box to write the forcast
+- Once you choose the number of days, it will automatically generate the result
+
+```r
+# Define UI for the app
+ui <- fluidPage(
+  titlePanel("Nifty50 Stock Price Data with ARIMA Forecasting"),
+  
+  sidebarLayout(
+    sidebarPanel(
+      selectInput("company", "Select a Company:", 
+                  choices = setNames(nifty50_companies$Symbol, nifty50_companies$Company)),
+      dateInput("start_date", "Select Start Date:", value = Sys.Date() - 365),
+      dateInput("end_date", "Select End Date:", value = Sys.Date()),
+      numericInput("forecast_days", "Days to Forecast:", value = 30, min = 1),
+      actionButton("update", "Update Data")
+    ),
+    
+    mainPanel(
+      plotOutput("stockPlot"),
+      tableOutput("stockTable"),
+      plotOutput("forecastPlot")
+    )
+  )
+)
+
+```
+
+### 5. Define Server logic
+
+
+```r
+# Define server logic
+server <- function(input, output, session) {
+  
+  stockData <- reactive({
+    req(input$company, input$start_date, input$end_date)
+    
+    tryCatch({
+      getSymbols(input$company, src = "yahoo", 
+                 from = input$start_date, to = input$end_date, auto.assign = FALSE)
+    }, error = function(e) {
+      showNotification("Error fetching stock data. Please check the company symbol or date range.", type = "error")
+      return(NULL)
+    })
+  })
+  
+  output$stockPlot <- renderPlot({
+    data <- stockData()
+    if (!is.null(data)) {
+      chartSeries(data, name = paste("Stock Price for", input$company), theme = chartTheme("white"))
+    }
+  })
+  
+  output$stockTable <- renderTable({
+    data <- stockData()
+    if (!is.null(data)) {
+      data <- as.data.frame(data)
+      colnames(data) <- c("Open", "High", "Low", "Close", "Volume", "Adjusted")
+      data
+    }
+  })
+  
+  output$forecastPlot <- renderPlot({
+    data <- stockData()
+    if (!is.null(data)) {
+      # Extract the closing prices
+      close_prices <- Cl(data)
+      
+      # Fit an ARIMA model
+      fit <- auto.arima(close_prices)
+      
+      # Forecast for the specified number of days
+      forecast_days <- input$forecast_days
+      forecasted <- forecast(fit, h = forecast_days)
+      
+      # Plot the forecast
+      plot(forecasted, main = paste("ARIMA Forecast for", input$company, "for next", forecast_days, "days"))
+    }
+  })
+}
+
+# Run the application
+shinyApp(ui = ui, server = server)
+```
+
+```{r out.width = "800px", echo=FALSE}
+knitr::include_graphics('AH4.png')
+```
+
+
+
